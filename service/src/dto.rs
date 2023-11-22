@@ -8,3 +8,12 @@ pub struct TokenClaims {
     pub jti: String,
     pub acjti: Option<String>,
 }
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CommonError {
+    #[serde(skip_serializing)]
+    pub http_status: u16,
+    pub error_code: i32,
+    pub result: Option<serde_json::Value>,
+}

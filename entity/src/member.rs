@@ -12,7 +12,7 @@ pub enum MemberAuthStatus {
     #[sea_orm(num_value = 1)]
     Active,
     #[sea_orm(num_value = 2)]
-    WaitingOtp,
+    Ban,
 }
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
@@ -23,21 +23,19 @@ pub struct Model {
 
     pub auth_status: MemberAuthStatus,
 
-    #[sea_orm(unique)]
-    pub username: String,
     pub password: String,
 
     pub email: Option<String>,
     pub phone: Option<String>,
 
     pub name: String,
-    pub birthday: Option<DateTime>,
+    pub birthday: Option<DateTimeUtc>,
     pub avatar: Option<String>,
 
-    pub created_at: DateTime,
-    pub updated_at: DateTime,
-    pub updated_password_at: DateTime,
-    pub last_login_at: Option<DateTime>,
+    pub created_at: DateTimeUtc,
+    pub updated_at: DateTimeUtc,
+    pub updated_password_at: DateTimeUtc,
+    pub last_login_at: Option<DateTimeUtc>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

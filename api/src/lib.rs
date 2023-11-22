@@ -4,6 +4,8 @@
 //! cargo run -p example-rest-grpc-multiplex
 //! ```
 
+use crate::{model::AppState, routes::create_routes};
+
 use self::multiplex_service::MultiplexService;
 use axum::{routing::get, Router};
 use migration::ConnectionTrait;
@@ -14,12 +16,16 @@ use proto::{
 use shoply_service::sea_orm::{Database, DatabaseConnection, Schema};
 use std::env;
 use std::net::SocketAddr;
+use std::sync::Arc;
+use tokio::signal;
 use tonic::{Response as TonicResponse, Status};
 use tonic_web::GrpcWebLayer;
 use tower_http::cors::CorsLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
+mod model;
 mod multiplex_service;
+mod routes;
 
 mod proto {
     tonic::include_proto!("helloworld");
@@ -63,26 +69,29 @@ pub async fn main() {
         .init();
 
     dotenvy::dotenv().ok();
-    // let db_url = env::var("DATABASE_URL").expect("DATABASE_URL is not set in .env file");
+    let db_url = env::var("DATABASE_URL").expect("DATABASE_URL is not set in .env file");
     // // let host = env::var("HOST").expect("HOST is not set in .env file");
     // // let port = env::var("PORT").expect("PORT is not set in .env file");
     // // let server_url = format!("{host}:{port}");
 
-    // let conn = Database::connect(db_url)
-    //     .await
-    //     .expect("Database connection failed");
-    // let backend = conn.get_database_backend();
-    // let schema = Schema::new(backend);
-    // let _ = conn
-    //     .execute(backend.build(&schema.create_table_from_entity(entity::member_address::Entity)))
-    //     .await;
-    // let table_create_statement = schema.create_table_from_entity(entity::member::Entity);
-    // let table_create_result = conn.execute(backend.build(&table_create_statement)).await;
+    let conn = Database::connect(db_url)
+        .await
+        .expect("Database connection failed");
+    let backend = conn.get_database_backend();
+    let schema = Schema::new(backend);
+    let table_create_statement = schema.create_table_from_entity(entity::member::Entity);
+    let table_create_result = conn.execute(backend.build(&table_create_statement)).await;
+    let _ = conn
+        .execute(backend.build(&schema.create_table_from_entity(entity::member_auth::Entity)))
+        .await;
+    let _ = conn
+        .execute(backend.build(&schema.create_table_from_entity(entity::member_address::Entity)))
+        .await;
+
+    let app_state = Arc::new(AppState { conn: conn.clone() });
 
     // build the rest service
-    let rest = Router::new()
-        .route("/", get(web_root))
-        .layer(CorsLayer::permissive());
+    let rest = create_routes(app_state);
 
     // build the grpc service
     let reflection_service = tonic_reflection::server::Builder::configure()
@@ -105,6 +114,33 @@ pub async fn main() {
     tracing::debug!("listening on {addr}");
     hyper::Server::bind(&addr)
         .serve(tower::make::Shared::new(service))
+        .with_graceful_shutdown(shutdown_signal())
         .await
         .unwrap();
+}
+
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        signal::ctrl_c()
+            .await
+            .expect("failed to install Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        signal::unix::signal(signal::unix::SignalKind::terminate())
+            .expect("failed to install signal handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => {},
+        _ = terminate => {},
+    }
+
+    println!("signal received, starting graceful shutdown");
 }
