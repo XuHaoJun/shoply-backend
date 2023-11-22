@@ -6,10 +6,13 @@
 
 use self::multiplex_service::MultiplexService;
 use axum::{routing::get, Router};
+use migration::ConnectionTrait;
 use proto::{
     greeter_server::{Greeter, GreeterServer},
     HelloReply, HelloRequest,
 };
+use shoply_service::sea_orm::{Database, DatabaseConnection, Schema};
+use std::env;
 use std::net::SocketAddr;
 use tonic::{Response as TonicResponse, Status};
 use tonic_web::GrpcWebLayer;
@@ -58,6 +61,23 @@ pub async fn main() {
         )
         .with(tracing_subscriber::fmt::layer())
         .init();
+
+    dotenvy::dotenv().ok();
+    // let db_url = env::var("DATABASE_URL").expect("DATABASE_URL is not set in .env file");
+    // // let host = env::var("HOST").expect("HOST is not set in .env file");
+    // // let port = env::var("PORT").expect("PORT is not set in .env file");
+    // // let server_url = format!("{host}:{port}");
+
+    // let conn = Database::connect(db_url)
+    //     .await
+    //     .expect("Database connection failed");
+    // let backend = conn.get_database_backend();
+    // let schema = Schema::new(backend);
+    // let _ = conn
+    //     .execute(backend.build(&schema.create_table_from_entity(entity::member_address::Entity)))
+    //     .await;
+    // let table_create_statement = schema.create_table_from_entity(entity::member::Entity);
+    // let table_create_result = conn.execute(backend.build(&table_create_statement)).await;
 
     // build the rest service
     let rest = Router::new()

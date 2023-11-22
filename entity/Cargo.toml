@@ -10,6 +10,9 @@ path = "src/lib.rs"
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
+uuid = { version = "1.6", features = ["serde", "v7"] }
 
 [dependencies.sea-orm]
-version = "0.12.5" # sea-orm version
+version = "0.12.6" # sea-orm version
+default-features = false
+features = ["macros", "with-chrono", "with-json", "with-uuid"]

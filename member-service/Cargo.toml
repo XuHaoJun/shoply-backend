@@ -1,16 +1,20 @@
 [package]
-name = "shoply-service"
+name = "shoply-member-service"
 version = "0.1.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+publish = false
 
 [dependencies]
 entity = { path = "../entity" }
+shoply-service = { path = "../service" }
 serde = { version = "1", features = ["derive"] }
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.6", features = ["serde", "v7"] }
+argon2 = "0.5.2"
+jsonwebtoken = { version = "9.1.0" }
 
 [dependencies.sea-orm]
-version = "0.12.6" # sea-orm version
+version = "0.12.6"
 features = [
   "debug-print",
   "runtime-tokio-native-tls",
@@ -21,10 +25,3 @@ features = [
 
 [dev-dependencies]
 tokio = { version = "1.20.0", features = ["macros", "rt"] }
-
-# [features]
-# mock = ["sea-orm/mock"]
-
-# [[test]]
-# name = "mock"
-# required-features = ["mock"]

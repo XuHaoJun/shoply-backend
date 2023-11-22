@@ -7,6 +7,7 @@ publish = false
 
 [dependencies]
 shoply-service = { path = "../service" }
+shoply-member-service = { path = "../member-service" }
 tokio = { version = "1.29.0", features = ["full"] }
 axum = "0.6.19"
 futures = "0.3"
