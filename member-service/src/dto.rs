@@ -42,8 +42,7 @@ pub struct VerifyOtpForm {
 #[serde(rename_all = "camelCase")]
 pub struct RegisterForm {
     pub name: String,
-    pub email: Option<String>,
-    pub phone: Option<String>,
+    pub email_or_phone: String,
 
     pub password: String,
     pub confirm_password: String,

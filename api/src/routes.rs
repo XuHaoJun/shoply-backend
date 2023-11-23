@@ -5,7 +5,7 @@ use axum::{
     Json, Router,
 };
 use hyper::StatusCode;
-use shoply_member_service::dto::{LoginForm, SendOtpForm, VerifyOtpForm};
+use shoply_member_service::dto::{LoginForm, RegisterForm, SendOtpForm, VerifyOtpForm};
 use std::sync::Arc;
 use tower_http::cors::CorsLayer;
 
@@ -56,10 +56,26 @@ async fn login_handler(
     Ok(Json(x))
 }
 
+async fn register_handler(
+    State(app_state): State<Arc<AppState>>,
+    Json(body): Json<RegisterForm>,
+) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
+    let x = shoply_member_service::Mutation::register(&app_state.conn, body)
+        .await
+        .map_err(|err| {
+            (
+                StatusCode::from_u16(err.http_status).unwrap(),
+                Json(serde_json::to_value(err).unwrap()),
+            )
+        })?;
+    Ok(Json(x))
+}
+
 pub fn get_member_routes(app_state: Arc<AppState>) -> Router {
     Router::new()
         .route("/sendOtp", post(send_otp_handler))
         .route("/verifyOtp", post(verify_otp_handler))
+        .route("/register", post(login_handler))
         .route("/login", post(login_handler))
         .with_state(app_state)
 }

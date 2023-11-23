@@ -11,8 +11,8 @@ use crate::Uuid;
 #[sea_orm(rs_type = "i32", db_type = "Integer")]
 #[repr(i32)]
 pub enum OtpType {
-    Email = 0,
-    Phone = 1,
+    RegisterActionByEmail = 0,
+    RegisterActionByPhone = 1,
 }
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
@@ -23,8 +23,8 @@ pub struct Model {
     pub otp_type: OtpType,
     pub otp: String,
     pub exipred_at: DateTimeUtc,
-    pub is_verified: bool,
-
+    pub last_send_at: DateTimeUtc,
+ 
     pub email: Option<String>,
     pub phone: Option<String>,
 }

@@ -1,7 +1,11 @@
 use crate::dto::*;
 use ::entity::prelude::*;
-use argon2::{password_hash::{SaltString, rand_core::OsRng}, Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
+use argon2::{
+    password_hash::{rand_core::OsRng, SaltString},
+    Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
+};
 use jsonwebtoken::{encode, EncodingKey, Header};
+use rand::Rng;
 use sea_orm::*;
 use serde::{Deserialize, Serialize};
 use shoply_service::dto::*;
@@ -12,7 +16,7 @@ pub struct Mutation;
 impl Mutation {
     pub async fn send_otp(db: &DbConn, body: SendOtpForm) -> Result<SendOtpResponse, CommonError> {
         match body.otp_type {
-            ::entity::member_auth::OtpType::Email => {
+            ::entity::member_auth::OtpType::RegisterActionByEmail => {
                 // TODO
                 // do send otp
                 let maybe_auth = MemberAuth::find()
@@ -33,13 +37,16 @@ impl Mutation {
 
                 match maybe_auth {
                     None => {
-                        let email_otp_exipred_at =
-                            chrono::Utc::now() + chrono::Duration::minutes(30);
+                        let now = chrono::Utc::now();
+                        let email_otp_exipred_at = now + chrono::Duration::minutes(30);
+                        let num = rand::thread_rng().gen_range(1..1000000);
+                        let otp = format!("{:0>6}", num.to_string());
                         let new_auth = ::entity::member_auth::ActiveModel {
-                            otp_type: Set(::entity::member_auth::OtpType::Email),
+                            otp_type: Set(::entity::member_auth::OtpType::RegisterActionByEmail),
                             email: Set(Some(body.email_or_phone.to_ascii_lowercase())),
-                            otp: Set("123456".to_owned()),
+                            otp: Set(otp),
                             exipred_at: Set(email_otp_exipred_at.clone()),
+                            last_send_at: Set(now),
                             ..Default::default()
                         };
                         MemberAuth::insert(new_auth).exec(db).await.map_err(|err| {
@@ -57,12 +64,15 @@ impl Mutation {
                     Some(auth) => todo!(),
                 }
             }
-            ::entity::member_auth::OtpType::Phone => todo!(),
+            ::entity::member_auth::OtpType::RegisterActionByPhone => todo!(),
         }
     }
 
-    pub async fn verify_otp(db: &DbConn, body: VerifyOtpForm) -> Result<(), CommonError> {
-        let auth = MemberAuth::find()
+    pub async fn verify_otp(
+        db: &DbConn,
+        body: VerifyOtpForm,
+    ) -> Result<::entity::member_auth::Model, CommonError> {
+        let auth: ::entity::member_auth::Model = MemberAuth::find()
             .filter(
                 Condition::all()
                     .add(::entity::member_auth::Column::OtpType.eq(body.otp_type))
@@ -71,7 +81,7 @@ impl Mutation {
                         Condition::any()
                             .add(
                                 ::entity::member_auth::Column::Email
-                                    .eq(body.email_or_phone.clone()),
+                                    .eq(body.email_or_phone.clone().to_ascii_lowercase()),
                             )
                             .add(
                                 ::entity::member_auth::Column::Phone
@@ -91,27 +101,32 @@ impl Mutation {
                 error_code: 100001,
                 result: None,
             })?;
-
-        if !auth.is_verified {
-            let mut update_auth: ::entity::member_auth::ActiveModel = auth.into();
-            update_auth.is_verified = Set(true);
-            update_auth.update(db).await.map_err(|_| CommonError {
-                http_status: 500,
-                error_code: 100000,
+        let now = chrono::Utc::now();
+        if now > auth.exipred_at {
+            MemberAuth::delete_by_id(auth.id)
+                .exec(db)
+                .await
+                .map_err(|err| CommonError {
+                    http_status: 400,
+                    error_code: 100001,
+                    result: None,
+                })?;
+            return Err(CommonError {
+                http_status: 400,
+                error_code: 100001,
                 result: None,
-            })?;
+            });
         }
-
-        Ok(())
+        Ok(auth)
     }
 
     pub async fn register(db: &DbConn, body: RegisterForm) -> Result<(), CommonError> {
         let verify_otp = VerifyOtpForm {
-            email_or_phone: body.email.clone().unwrap(),
-            otp_type: body.otp_type,
+            email_or_phone: body.email_or_phone.clone(),
+            otp_type: body.otp_type.clone(),
             otp: body.otp,
         };
-        Self::verify_otp(db, verify_otp).await?;
+        let auth = Self::verify_otp(db, verify_otp).await?;
 
         let salt = SaltString::generate(&mut OsRng);
         let hashed_password = Argon2::default()
@@ -122,10 +137,18 @@ impl Mutation {
                 result: None,
             })
             .map(|hash| hash.to_string())?;
+        let email = match body.otp_type {
+            ::entity::member_auth::OtpType::RegisterActionByEmail => Some(body.email_or_phone.to_ascii_lowercase()),
+            ::entity::member_auth::OtpType::RegisterActionByPhone => None,
+        };
+        let phone = match body.otp_type {
+            ::entity::member_auth::OtpType::RegisterActionByEmail => None,
+            ::entity::member_auth::OtpType::RegisterActionByPhone => Some(body.email_or_phone),
+        };
         let new_member = ::entity::member::ActiveModel {
             password: Set(hashed_password),
-            email: Set(body.email.clone().and_then(|x| Some(x.to_ascii_lowercase()))),
-            phone: Set(body.phone),
+            email: Set(email),
+            phone: Set(phone),
             ..Default::default()
         };
         Member::insert(new_member)
@@ -136,6 +159,9 @@ impl Mutation {
                 error_code: 100000,
                 result: None,
             })?;
+
+        MemberAuth::delete_by_id(auth.id).exec(db).await;
+
         Ok(())
     }
 }
