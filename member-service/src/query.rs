@@ -1,7 +1,7 @@
 use crate::dto::*;
 use ::entity::prelude::*;
 use argon2::{password_hash::SaltString, Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
-use jsonwebtoken::{encode, EncodingKey, Header};
+use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use sea_orm::*;
 use serde::{Deserialize, Serialize};
 use shoply_service::dto::*;
@@ -10,7 +10,6 @@ use std::{default, ops::Add};
 pub struct Query;
 
 impl Query {
-
     pub async fn login(db: &DbConn, body: LoginForm) -> Result<LoginResponse, CommonError> {
         #[derive(FromQueryResult)]
         struct PartialMember {
@@ -54,6 +53,10 @@ impl Query {
             });
         }
 
+        Ok(Self::create_access_token(member.id))
+    }
+
+    fn create_access_token(member_id: String) -> LoginResponse {
         let now = chrono::Utc::now();
         let iat = now.timestamp() as usize;
         let jti = uuid::Uuid::now_v7().to_string();
@@ -61,7 +64,7 @@ impl Query {
         let claims: TokenClaims = {
             let exp = (now + chrono::Duration::minutes(60)).timestamp() as usize;
             TokenClaims {
-                sub: member.id.to_string(),
+                sub: member_id.clone(),
                 exp,
                 iat,
                 jti: jti.clone(),
@@ -72,7 +75,7 @@ impl Query {
         let refresh_claims: TokenClaims = {
             let exp = (now + chrono::Duration::minutes(180)).timestamp() as usize;
             TokenClaims {
-                sub: member.id.to_string(),
+                sub: member_id,
                 exp,
                 iat,
                 jti: uuid::Uuid::now_v7().to_string(),
@@ -93,9 +96,49 @@ impl Query {
         )
         .unwrap();
 
-        Ok(LoginResponse {
+        LoginResponse {
             access_token,
             refresh_token,
-        })
+        }
+    }
+
+    pub fn refresh_token(body: RefreshTokenForm) -> Result<LoginResponse, CommonError> {
+        let mut validation = Validation::default();
+        validation.validate_exp = false;
+
+        let claims = decode::<TokenClaims>(
+            &body.access_token,
+            &DecodingKey::from_secret("my_secret".as_ref()),
+            &validation,
+        )
+        .map_err(|_| CommonError {
+            http_status: 400,
+            error_code: 1000001,
+            result: None,
+        })?
+        .claims;
+
+        let refresh_claims = decode::<TokenClaims>(
+            &body.access_token,
+            &DecodingKey::from_secret("my_secret".as_ref()),
+            &Validation::default(),
+        )
+        .map_err(|_| CommonError {
+            http_status: 400,
+            error_code: 1000001,
+            result: None,
+        })?
+        .claims;
+
+        let acjti = refresh_claims.acjti.map_or("".to_owned(), |x| x);
+        if acjti != claims.jti {
+            return Err(CommonError {
+                http_status: 400,
+                error_code: 1000001,
+                result: None,
+            });
+        }
+
+        Ok(Self::create_access_token(claims.sub))
     }
 }

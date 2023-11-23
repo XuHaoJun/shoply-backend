@@ -11,6 +11,7 @@ pub struct LoginForm {
 }
 
 #[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LoginResponse {
     pub access_token: String,
     pub refresh_token: String,
@@ -49,4 +50,11 @@ pub struct RegisterForm {
 
     pub otp_type: OtpType,
     pub otp: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RefreshTokenForm {
+    pub access_token: String,
+    pub refresh_token: String,
 }

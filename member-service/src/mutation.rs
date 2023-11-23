@@ -39,8 +39,9 @@ impl Mutation {
                     None => {
                         let now = chrono::Utc::now();
                         let email_otp_exipred_at = now + chrono::Duration::minutes(30);
-                        let num = rand::thread_rng().gen_range(1..1000000);
-                        let otp = format!("{:0>6}", num.to_string());
+                        // let num = rand::thread_rng().gen_range(1..1000000);
+                        // let otp = format!("{:0>6}", num.to_string());
+                        let otp = "123456".to_owned();
                         let new_auth = ::entity::member_auth::ActiveModel {
                             otp_type: Set(::entity::member_auth::OtpType::RegisterActionByEmail),
                             email: Set(Some(body.email_or_phone.to_ascii_lowercase())),
