@@ -139,7 +139,9 @@ impl Mutation {
             })
             .map(|hash| hash.to_string())?;
         let email = match body.otp_type {
-            ::entity::member_auth::OtpType::RegisterActionByEmail => Some(body.email_or_phone.to_ascii_lowercase()),
+            ::entity::member_auth::OtpType::RegisterActionByEmail => {
+                Some(body.email_or_phone.to_ascii_lowercase())
+            }
             ::entity::member_auth::OtpType::RegisterActionByPhone => None,
         };
         let phone = match body.otp_type {
@@ -150,6 +152,7 @@ impl Mutation {
             password: Set(hashed_password),
             email: Set(email),
             phone: Set(phone),
+            auth_status: ::entity::member::MemberAuthStatus::Active,
             ..Default::default()
         };
         Member::insert(new_member)
