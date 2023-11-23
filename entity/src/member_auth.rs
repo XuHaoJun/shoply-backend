@@ -23,6 +23,7 @@ pub struct Model {
     pub otp_type: OtpType,
     pub otp: String,
     pub exipred_at: DateTimeUtc,
+    pub is_verified: bool,
 
     pub email: Option<String>,
     pub phone: Option<String>,

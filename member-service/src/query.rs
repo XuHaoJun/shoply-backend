@@ -10,38 +10,6 @@ use std::{default, ops::Add};
 pub struct Query;
 
 impl Query {
-    pub async fn verify_otp(db: &DbConn, body: VerifyOtpForm) -> Result<(), CommonError> {
-        MemberAuth::find()
-            .filter(
-                Condition::all()
-                    .add(::entity::member_auth::Column::OtpType.eq(body.otp_type))
-                    .add(::entity::member_auth::Column::Otp.eq(body.otp))
-                    .add(
-                        Condition::any()
-                            .add(
-                                ::entity::member_auth::Column::Email
-                                    .eq(body.email_or_phone.clone()),
-                            )
-                            .add(
-                                ::entity::member_auth::Column::Phone
-                                    .eq(body.email_or_phone.clone()),
-                            ),
-                    ),
-            )
-            .one(db)
-            .await
-            .map_err(|_| CommonError {
-                http_status: 500,
-                error_code: 100000,
-                result: None,
-            })?
-            .ok_or_else(|| CommonError {
-                http_status: 400,
-                error_code: 100001,
-                result: None,
-            })?;
-        Ok(())
-    }
 
     pub async fn login(db: &DbConn, body: LoginForm) -> Result<LoginResponse, CommonError> {
         #[derive(FromQueryResult)]

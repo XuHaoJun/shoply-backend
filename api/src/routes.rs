@@ -30,7 +30,7 @@ async fn verify_otp_handler(
     State(app_state): State<Arc<AppState>>,
     Json(body): Json<VerifyOtpForm>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
-    shoply_member_service::Query::verify_otp(&app_state.conn, body)
+    shoply_member_service::Mutation::verify_otp(&app_state.conn, body)
         .await
         .map_err(|err| {
             (

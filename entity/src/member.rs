@@ -5,14 +5,10 @@ use sea_orm::entity::{prelude::*, Set};
 use crate::Uuid;
 
 #[derive(Debug, Clone, PartialEq, Eq, EnumIter, DeriveActiveEnum)]
-#[sea_orm(rs_type = "i8", db_type = "Integer")]
+#[sea_orm(rs_type = "i32", db_type = "Integer")]
 pub enum MemberAuthStatus {
-    #[sea_orm(num_value = 0)]
-    Inactive,
-    #[sea_orm(num_value = 1)]
-    Active,
-    #[sea_orm(num_value = 2)]
-    Ban,
+    Inactive = 0,
+    Active = 1,
 }
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
@@ -60,9 +56,12 @@ impl Related<super::member_address::Entity> for Entity {
 
 impl ActiveModelBehavior for ActiveModel {
     fn new() -> Self {
-        Self {
+        let now = chrono::Utc::now();
+        return Self {
             id: Set(Uuid::now_v7()),
+            created_at: Set(now),
+            updated_at: Set(now.clone()),
             ..ActiveModelTrait::default()
-        }
+        };
     }
 }

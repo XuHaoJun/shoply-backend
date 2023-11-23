@@ -37,3 +37,17 @@ pub struct VerifyOtpForm {
 
     pub otp: String,
 }
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RegisterForm {
+    pub name: String,
+    pub email: Option<String>,
+    pub phone: Option<String>,
+
+    pub password: String,
+    pub confirm_password: String,
+
+    pub otp_type: OtpType,
+    pub otp: String,
+}
