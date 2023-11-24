@@ -15,6 +15,30 @@ pub struct Mutation;
 
 impl Mutation {
     pub async fn send_otp(db: &DbConn, body: SendOtpForm) -> Result<SendOtpResponse, CommonError> {
+        let maybe_member = Member::find()
+            .filter(
+                Condition::any()
+                    .add(
+                        ::entity::member::Column::Email
+                            .eq(body.email_or_phone.clone().to_ascii_lowercase()),
+                    )
+                    .add(::entity::member::Column::Phone.eq(body.email_or_phone.clone())),
+            )
+            .one(db)
+            .await
+            .map_err(|err| CommonError {
+                http_status: 500,
+                error_code: 100000,
+                result: None,
+            })?;
+        if let Some(member) = maybe_member {
+            return Err(CommonError {
+                http_status: 400,
+                error_code: 100000,
+                result: None,
+            });
+        }
+
         match body.otp_type {
             ::entity::member_auth::OtpType::RegisterActionByEmail => {
                 // TODO
@@ -26,13 +50,10 @@ impl Mutation {
                     )
                     .one(db)
                     .await
-                    .map_err(|err| {
-                        println!("{}", err.to_string());
-                        return CommonError {
-                            http_status: 500,
-                            error_code: 100000,
-                            result: None,
-                        };
+                    .map_err(|err| CommonError {
+                        http_status: 500,
+                        error_code: 100000,
+                        result: None,
                     })?;
 
                 match maybe_auth {
@@ -149,10 +170,11 @@ impl Mutation {
             ::entity::member_auth::OtpType::RegisterActionByPhone => Some(body.email_or_phone),
         };
         let new_member = ::entity::member::ActiveModel {
+            name: Set(body.name),
             password: Set(hashed_password),
             email: Set(email),
             phone: Set(phone),
-            auth_status: ::entity::member::MemberAuthStatus::Active,
+            auth_status: Set(::entity::member::MemberAuthStatus::Active),
             ..Default::default()
         };
         Member::insert(new_member)
