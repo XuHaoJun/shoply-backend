@@ -87,11 +87,11 @@ async fn refresh_token_handler(
 
 pub fn get_member_routes(app_state: Arc<AppState>) -> Router {
     Router::new()
-        .route("/sendOtp", post(send_otp_handler))
-        .route("/verifyOtp", post(verify_otp_handler))
-        .route("/register", post(login_handler))
+        .route("/send-otp", post(send_otp_handler))
+        .route("/verify-otp", post(verify_otp_handler))
+        .route("/", post(login_handler))
         .route("/login", post(login_handler))
-        .route("/refreshToken", post(refresh_token_handler))
+        .route("/refresh-token", post(refresh_token_handler))
         .with_state(app_state)
 }
 
