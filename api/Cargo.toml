@@ -9,13 +9,19 @@ publish = false
 shoply-service = { path = "../service" }
 shoply-member-service = { path = "../member-service" }
 tokio = { version = "1.29.0", features = ["full"] }
-axum = "0.6.19"
+axum = "0.6"
+axum-extra = { version = "0.8", features = [
+  "cookie",
+  "form",
+  "query",
+  "multipart",
+] }
 futures = "0.3"
 hyper = { version = "0.14", features = ["full"] }
 prost = "0.11"
 tonic = { version = "0.9" }
 tonic-reflection = "0.9"
-tonic-web = { version = "0.9"}
+tonic-web = { version = "0.9" }
 tower = { version = "0.4", features = ["full"] }
 tower-http = { version = "0.4.3", features = ["fs", "cors"] }
 tower-cookies = "0.9.0"
@@ -28,6 +34,7 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
 entity = { path = "../entity" }
 migration = { path = "../migration" }
+jsonwebtoken = { version = "9" }
 
 [build-dependencies]
 tonic-build = { version = "0.9", features = ["prost"] }

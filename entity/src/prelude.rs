@@ -3,3 +3,5 @@
 pub use super::member::Entity as Member;
 pub use super::member_address::Entity as MemberAddress;
 pub use super::member_auth::Entity as MemberAuth;
+pub use super::member_uniq_email::Entity as MemberUniqEmail;
+pub use super::member_uniq_phone::Entity as MemberUniqPhone;

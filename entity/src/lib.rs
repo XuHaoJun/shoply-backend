@@ -5,6 +5,8 @@ pub mod prelude;
 pub mod member;
 pub mod member_address;
 pub mod member_auth;
+pub mod member_uniq_email;
+pub mod member_uniq_phone;
 
 pub mod uuid;
 

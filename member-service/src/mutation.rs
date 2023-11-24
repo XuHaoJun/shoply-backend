@@ -172,21 +172,44 @@ impl Mutation {
         let new_member = ::entity::member::ActiveModel {
             name: Set(body.name),
             password: Set(hashed_password),
-            email: Set(email),
-            phone: Set(phone),
+            email: Set(email.clone()),
+            phone: Set(phone.clone()),
             auth_status: Set(::entity::member::MemberAuthStatus::Active),
             ..Default::default()
         };
-        Member::insert(new_member)
-            .exec(db)
-            .await
-            .map_err(|_| CommonError {
-                http_status: 500,
-                error_code: 100000,
-                result: None,
-            })?;
+        db.transaction::<_, (), DbErr>(|txn| {
+            Box::pin(async move {
+                match body.otp_type {
+                    ::entity::member_auth::OtpType::RegisterActionByEmail => {
+                        let _ = ::entity::member_uniq_email::ActiveModel {
+                            value: Set(email.unwrap()),
+                            ..Default::default()
+                        }
+                        .save(txn)
+                        .await?;
+                    }
 
-        MemberAuth::delete_by_id(auth.id).exec(db).await;
+                    ::entity::member_auth::OtpType::RegisterActionByPhone => {
+                        let _ = ::entity::member_uniq_phone::ActiveModel {
+                            value: Set(phone.unwrap()),
+                            ..Default::default()
+                        }
+                        .save(txn)
+                        .await?;
+                    }
+                }
+                new_member.save(txn).await?;
+                Ok(())
+            })
+        })
+        .await
+        .map_err(|_| CommonError {
+            http_status: 500,
+            error_code: 100000,
+            result: None,
+        })?;
+
+        let _ = MemberAuth::delete_by_id(auth.id).exec(db).await;
 
         Ok(())
     }

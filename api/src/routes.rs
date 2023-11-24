@@ -1,17 +1,23 @@
 use axum::{
-    extract::{Path, State},
+    extract::{Extension, Path, State},
+    http::{header, Request},
+    middleware,
     response::IntoResponse,
     routing::{delete, get, post},
     Json, Router,
 };
+use axum_extra::extract::cookie::CookieJar;
 use hyper::StatusCode;
+use jsonwebtoken::{decode, DecodingKey, Validation};
 use shoply_member_service::dto::{
     LoginForm, RefreshTokenForm, RegisterForm, SendOtpForm, VerifyOtpForm,
 };
+use shoply_service::dto::{CommonError, TokenClaims};
 use std::sync::Arc;
+use tower::ServiceBuilder;
 use tower_http::cors::CorsLayer;
 
-use crate::model::AppState;
+use crate::model::*;
 
 async fn send_otp_handler(
     State(app_state): State<Arc<AppState>>,
@@ -83,6 +89,81 @@ async fn refresh_token_handler(
         )
     })?;
     Ok(Json(x))
+}
+
+pub fn extract_token<B>(cookie_jar: CookieJar, req: &Request<B>) -> Option<String> {
+    cookie_jar
+        .get("token")
+        .map(|cookie| cookie.value().to_string())
+        .or_else(|| {
+            req.headers()
+                .get(header::AUTHORIZATION)
+                .and_then(|auth_header| auth_header.to_str().ok())
+                .and_then(|auth_value| {
+                    if auth_value.starts_with("Bearer ") {
+                        Some(auth_value[7..].to_owned())
+                    } else {
+                        None
+                    }
+                })
+        })
+}
+
+pub async fn try_extract_claims<B>(
+    cookie_jar: CookieJar,
+    State(app_state): State<Arc<AppState>>,
+    mut req: Request<B>,
+    next: middleware::Next<B>,
+) -> Result<impl IntoResponse, (StatusCode, Json<CommonError>)> {
+    let token = extract_token(cookie_jar, &req);
+    if token == None {
+        return Ok(next.run(req).await);
+    }
+    let claims = decode::<TokenClaims>(
+        &token.unwrap(),
+        &DecodingKey::from_secret(app_state.config.jwt.secret.as_ref()),
+        &Validation::default(),
+    );
+    if let Ok(data) = claims {
+        req.extensions_mut().insert(data.claims);
+    }
+    Ok(next.run(req).await)
+}
+
+pub async fn authorize<B>(
+    cookie_jar: CookieJar,
+    State(app_state): State<Arc<AppState>>,
+    mut req: Request<B>,
+    next: middleware::Next<B>,
+) -> Result<impl IntoResponse, (StatusCode, Json<CommonError>)> {
+    let token = extract_token(cookie_jar, &req);
+    let token = token.ok_or_else(|| {
+        let json_error = CommonError {
+            http_status: 401,
+            error_code: 100000,
+            result: None,
+        };
+        (StatusCode::UNAUTHORIZED, Json(json_error))
+    })?;
+
+    let claims = decode::<TokenClaims>(
+        &token,
+        &DecodingKey::from_secret(app_state.config.jwt.secret.as_ref()),
+        &Validation::default(),
+    )
+    .map_err(|_| {
+        let json_error = CommonError {
+            http_status: 401,
+            error_code: 100000,
+            result: None,
+        };
+        (StatusCode::UNAUTHORIZED, Json(json_error))
+    })?
+    .claims;
+
+    req.extensions_mut().insert(claims);
+
+    Ok(next.run(req).await)
 }
 
 pub fn get_member_routes(app_state: Arc<AppState>) -> Router {

@@ -4,7 +4,10 @@
 //! cargo run -p example-rest-grpc-multiplex
 //! ```
 
-use crate::{model::AppState, routes::create_routes};
+use crate::{
+    model::*,
+    routes::create_routes,
+};
 
 use self::multiplex_service::MultiplexService;
 use axum::{routing::get, Router};
@@ -87,8 +90,24 @@ pub async fn main() {
     let _ = conn
         .execute(backend.build(&schema.create_table_from_entity(entity::member_address::Entity)))
         .await;
+    let _ = conn
+        .execute(backend.build(&schema.create_table_from_entity(entity::member_uniq_email::Entity)))
+        .await;
+    let _ = conn
+        .execute(backend.build(&schema.create_table_from_entity(entity::member_uniq_phone::Entity)))
+        .await;
 
-    let app_state = Arc::new(AppState { conn: conn.clone() });
+    let config = Config {
+        jwt: JwtConfig {
+            secret: "my_secret".to_owned(),
+            ..Default::default()
+        },
+        ..Default::default()
+    };
+    let app_state = Arc::new(AppState {
+        conn: conn.clone(),
+        config,
+    });
 
     // build the rest service
     let rest = create_routes(app_state);

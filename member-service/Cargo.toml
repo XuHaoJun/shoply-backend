@@ -16,7 +16,7 @@ jsonwebtoken = { version = "9" }
 rand = { version = "0" }
 
 [dependencies.sea-orm]
-version = "0.12.6"
+version = "0.12.7"
 features = [
   "debug-print",
   "runtime-tokio-native-tls",
