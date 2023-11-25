@@ -176,8 +176,13 @@ pub fn get_member_routes(app_state: Arc<AppState>) -> Router {
         .with_state(app_state)
 }
 
+pub async fn local_now_handle() -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
+    Ok(chrono::Local::now().to_rfc3339())
+}
+
 pub fn create_routes(app_state: Arc<AppState>) -> Router {
     Router::new()
         .layer(CorsLayer::permissive())
+        .route("/now", get(local_now_handle))
         .nest("/member", get_member_routes(app_state))
 }
