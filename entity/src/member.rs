@@ -61,6 +61,7 @@ impl ActiveModelBehavior for ActiveModel {
             id: Set(Uuid::now_v7()),
             created_at: Set(now),
             updated_at: Set(now.clone()),
+            updated_password_at: Set(now.clone()),
             ..ActiveModelTrait::default()
         };
     }

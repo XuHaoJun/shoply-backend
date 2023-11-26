@@ -181,32 +181,34 @@ impl Mutation {
             Box::pin(async move {
                 match body.otp_type {
                     ::entity::member_auth::OtpType::RegisterActionByEmail => {
-                        let _ = ::entity::member_uniq_email::ActiveModel {
+                        let _ = MemberUniqEmail::insert(::entity::member_uniq_email::ActiveModel {
                             value: Set(email.unwrap()),
                             ..Default::default()
-                        }
-                        .save(txn)
+                        })
+                        .exec(txn)
                         .await?;
                     }
 
                     ::entity::member_auth::OtpType::RegisterActionByPhone => {
-                        let _ = ::entity::member_uniq_phone::ActiveModel {
+                        let _ = MemberUniqPhone::insert(::entity::member_uniq_phone::ActiveModel {
                             value: Set(phone.unwrap()),
                             ..Default::default()
-                        }
-                        .save(txn)
+                        })
+                        .exec(txn)
                         .await?;
                     }
                 }
-                new_member.save(txn).await?;
+                let _ = Member::insert(new_member).exec(txn).await?;
                 Ok(())
             })
         })
         .await
-        .map_err(|_| CommonError {
-            http_status: 500,
-            error_code: 100000,
-            result: None,
+        .map_err(|err| {
+            return CommonError {
+                http_status: 500,
+                error_code: 100000,
+                result: None,
+            };
         })?;
 
         let _ = MemberAuth::delete_by_id(auth.id).exec(db).await;

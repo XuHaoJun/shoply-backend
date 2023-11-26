@@ -53,7 +53,7 @@ async fn login_handler(
     State(app_state): State<Arc<AppState>>,
     Json(body): Json<LoginForm>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
-    let x = shoply_member_service::Query::login(&app_state.conn, body)
+    let x = shoply_member_service::Query::login(&app_state.conn, &app_state.config.jwt, body)
         .await
         .map_err(|err| {
             (
@@ -80,14 +80,17 @@ async fn register_handler(
 }
 
 async fn refresh_token_handler(
+    State(app_state): State<Arc<AppState>>,
     Json(body): Json<RefreshTokenForm>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
-    let x = shoply_member_service::Query::refresh_token(body).map_err(|err| {
-        (
-            StatusCode::from_u16(err.http_status).unwrap(),
-            Json(serde_json::to_value(err).unwrap()),
-        )
-    })?;
+    let x = shoply_member_service::Query::refresh_token(&app_state.config.jwt, body).map_err(
+        |err| {
+            (
+                StatusCode::from_u16(err.http_status).unwrap(),
+                Json(serde_json::to_value(err).unwrap()),
+            )
+        },
+    )?;
     Ok(Json(x))
 }
 
@@ -170,13 +173,14 @@ pub fn get_member_routes(app_state: Arc<AppState>) -> Router {
     Router::new()
         .route("/send-otp", post(send_otp_handler))
         .route("/verify-otp", post(verify_otp_handler))
-        .route("/", post(login_handler))
+        .route("/", post(register_handler))
         .route("/login", post(login_handler))
         .route("/refresh-token", post(refresh_token_handler))
         .with_state(app_state)
 }
 
-pub async fn local_now_handle() -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)> {
+pub async fn local_now_handle() -> Result<impl IntoResponse, (StatusCode, Json<serde_json::Value>)>
+{
     Ok(chrono::Local::now().to_rfc3339())
 }
 

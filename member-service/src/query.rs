@@ -5,15 +5,20 @@ use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation}
 use sea_orm::*;
 use serde::{Deserialize, Serialize};
 use shoply_service::dto::*;
+use uuid::Uuid;
 use std::{default, ops::Add};
 
 pub struct Query;
 
 impl Query {
-    pub async fn login(db: &DbConn, body: LoginForm) -> Result<LoginResponse, CommonError> {
+    pub async fn login(
+        db: &DbConn,
+        jwt_config: &AppJwtConfig,
+        body: LoginForm,
+    ) -> Result<LoginResponse, CommonError> {
         #[derive(FromQueryResult)]
         struct PartialMember {
-            pub id: String,
+            pub id: Uuid,
             pub password: String,
         }
         let member = Member::find()
@@ -53,10 +58,10 @@ impl Query {
             });
         }
 
-        Ok(Self::create_access_token(member.id))
+        Ok(Self::create_access_token(&jwt_config.secret, member.id.to_string()))
     }
 
-    fn create_access_token(member_id: String) -> LoginResponse {
+    fn create_access_token(secert: &str, member_id: String) -> LoginResponse {
         let now = chrono::Utc::now();
         let iat = now.timestamp() as usize;
         let jti = uuid::Uuid::now_v7().to_string();
@@ -86,13 +91,13 @@ impl Query {
         let access_token = encode(
             &Header::default(),
             &claims,
-            &EncodingKey::from_secret("my_secret".as_ref()),
+            &EncodingKey::from_secret(secert.as_ref()),
         )
         .unwrap();
         let refresh_token = encode(
             &Header::default(),
-            &claims,
-            &EncodingKey::from_secret("my_secret".as_ref()),
+            &refresh_claims,
+            &EncodingKey::from_secret(secert.as_ref()),
         )
         .unwrap();
 
@@ -102,7 +107,10 @@ impl Query {
         }
     }
 
-    pub fn refresh_token(body: RefreshTokenForm) -> Result<LoginResponse, CommonError> {
+    pub fn refresh_token(
+        jwt_config: &AppJwtConfig,
+        body: RefreshTokenForm,
+    ) -> Result<LoginResponse, CommonError> {
         let mut validation = Validation::default();
         validation.validate_exp = false;
 
@@ -139,6 +147,6 @@ impl Query {
             });
         }
 
-        Ok(Self::create_access_token(claims.sub))
+        Ok(Self::create_access_token(&jwt_config.secret, claims.sub))
     }
 }

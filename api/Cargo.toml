@@ -36,6 +36,7 @@ entity = { path = "../entity" }
 migration = { path = "../migration" }
 jsonwebtoken = { version = "9" }
 chrono = { version = "0.4", features = ["serde"] }
+config = { version = "0.13", features = ["toml"] }
 
 [build-dependencies]
 tonic-build = { version = "0.9", features = ["prost"] }

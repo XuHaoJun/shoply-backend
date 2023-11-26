@@ -1,5 +1,21 @@
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct AppConfig {
+    pub host: String,
+    pub port: String,
+    pub database_url: String,
+    pub jwt: AppJwtConfig,
+    // pub cors: Vec<String>,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct AppJwtConfig {
+    pub secret: String,
+    // pub expires_in: String,
+    // pub maxage: i32,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TokenClaims {
     pub sub: String,

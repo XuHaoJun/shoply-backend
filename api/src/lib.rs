@@ -4,10 +4,7 @@
 //! cargo run -p example-rest-grpc-multiplex
 //! ```
 
-use crate::{
-    model::*,
-    routes::create_routes,
-};
+use crate::{model::*, routes::create_routes};
 
 use self::multiplex_service::MultiplexService;
 use axum::{routing::get, Router};
@@ -16,7 +13,8 @@ use proto::{
     greeter_server::{Greeter, GreeterServer},
     HelloReply, HelloRequest,
 };
-use shoply_service::sea_orm::{Database, DatabaseConnection, Schema};
+use serde::Deserialize;
+use shoply_service::{sea_orm::{Database, DatabaseConnection, Schema}, dto::AppConfig};
 use std::env;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -60,6 +58,12 @@ async fn web_root() -> &'static str {
     "Hello, World!"
 }
 
+#[derive(Debug, Default, Deserialize, PartialEq, Eq)]
+struct AppConfig2 {
+    host: String,
+    // list: Vec<String>,
+}
+
 #[tokio::main]
 pub async fn main() {
     // initialize tracing
@@ -72,10 +76,21 @@ pub async fn main() {
         .init();
 
     dotenvy::dotenv().ok();
-    let db_url = env::var("DATABASE_URL").expect("DATABASE_URL is not set in .env file");
-    // // let host = env::var("HOST").expect("HOST is not set in .env file");
-    // // let port = env::var("PORT").expect("PORT is not set in .env file");
-    // // let server_url = format!("{host}:{port}");
+
+    let s = config::Config::builder()
+        .add_source(config::File::with_name("shoplyrc").required(false))
+        .add_source(
+            config::Environment::default()
+                .try_parsing(true)
+                .separator("__"), // .list_separator(",")
+                                  // .with_list_parse_key("cors"),
+        )
+        .build()
+        .unwrap();
+
+    let app_config: AppConfig = s.try_deserialize().unwrap();
+
+    let db_url = app_config.database_url.clone();
 
     let conn = Database::connect(db_url)
         .await
@@ -97,16 +112,9 @@ pub async fn main() {
         .execute(backend.build(&schema.create_table_from_entity(entity::member_uniq_phone::Entity)))
         .await;
 
-    let config = Config {
-        jwt: JwtConfig {
-            secret: "my_secret".to_owned(),
-            ..Default::default()
-        },
-        ..Default::default()
-    };
     let app_state = Arc::new(AppState {
         conn: conn.clone(),
-        config,
+        config: app_config.clone(),
     });
 
     // build the rest service
@@ -129,7 +137,9 @@ pub async fn main() {
     // combine them into one service
     let service = MultiplexService::new(rest, grpc);
 
-    let addr = SocketAddr::from(([0, 0, 0, 0], 5000));
+    let addr: SocketAddr = (app_config.host + ":" + app_config.port.as_ref())
+        .parse()
+        .unwrap();
     tracing::debug!("listening on {addr}");
     hyper::Server::bind(&addr)
         .serve(tower::make::Shared::new(service))
