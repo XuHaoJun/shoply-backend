@@ -46,7 +46,7 @@ async fn verify_otp_handler(
                 Json(serde_json::to_value(err).unwrap()),
             )
         })?;
-    Ok(())
+    Ok(Json(true))
 }
 
 async fn login_handler(
@@ -186,7 +186,7 @@ pub async fn local_now_handle() -> Result<impl IntoResponse, (StatusCode, Json<s
 
 pub fn create_routes(app_state: Arc<AppState>) -> Router {
     Router::new()
-        .layer(CorsLayer::permissive())
         .route("/now", get(local_now_handle))
         .nest("/member", get_member_routes(app_state))
+        .layer(CorsLayer::permissive())
 }

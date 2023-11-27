@@ -7,6 +7,7 @@ use crate::Uuid;
 
 #[derive(
     EnumIter, DeriveActiveEnum, Serialize_repr, Deserialize_repr, Eq, PartialEq, Debug, Clone,
+    ts_rs::TS
 )]
 #[sea_orm(rs_type = "i32", db_type = "Integer")]
 #[repr(i32)]
@@ -24,7 +25,7 @@ pub struct Model {
     pub otp: String,
     pub exipred_at: DateTimeUtc,
     pub last_send_at: DateTimeUtc,
- 
+
     pub email: Option<String>,
     pub phone: Option<String>,
 }
