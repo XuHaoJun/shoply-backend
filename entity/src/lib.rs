@@ -8,6 +8,9 @@ pub mod member_auth;
 pub mod member_uniq_email;
 pub mod member_uniq_phone;
 
+pub mod product;
+pub mod product_variant;
+
 pub mod uuid;
 
 pub use crate::uuid::UuidV7 as Uuid;

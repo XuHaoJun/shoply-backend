@@ -14,8 +14,9 @@ chrono = { version = "0.4", features = ["serde"] }
 serde_repr = { version = "0.1" }
 uuid = { version = "1.6", features = ["serde", "v7"] }
 ts-rs = "7.0"
+rust_decimal = "1"
 
 [dependencies.sea-orm]
 version = "0.12.6" # sea-orm version
 default-features = false
-features = ["macros", "with-chrono", "with-json", "with-uuid"]
+features = ["macros", "with-chrono", "with-json", "with-uuid", "with-rust_decimal"]
