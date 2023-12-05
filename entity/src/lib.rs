@@ -11,6 +11,10 @@ pub mod member_uniq_phone;
 pub mod product;
 pub mod product_variant;
 
+pub mod sale;
+pub mod order;
+pub mod order_line;
+
 pub mod uuid;
 
 pub use crate::uuid::UuidV7 as Uuid;

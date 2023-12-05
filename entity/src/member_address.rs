@@ -31,12 +31,18 @@ pub struct Model {
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(
-        belongs_to = "super::member::Entity",
-        from = "Column::MemberId",
-        to = "super::member::Column::Id"
-    )]
     Member,
+}
+
+impl RelationTrait for Relation {
+    fn def(&self) -> RelationDef {
+        match self {
+            Self::Member => Entity::belongs_to(super::member::Entity)
+                .from(Column::MemberId)
+                .to(super::member::Column::Id)
+                .into(),
+        }
+    }
 }
 
 impl Related<super::member::Entity> for Entity {

@@ -3,44 +3,32 @@
 use sea_orm::entity::{prelude::*, Set};
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "product_variant")]
+#[sea_orm(table_name = "sale")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
-    pub product_id: Uuid,
-
-    pub name: String,
-    pub images: Vec<String>,
-
-    pub price: Decimal,
-
-    pub stock_input: i32,
-    pub stock_output: i32,
+    pub member_id: Uuid,
 
     pub created_at: DateTimeUtc,
     pub updated_at: DateTimeUtc,
-    pub deleted_at: Option<DateTimeUtc>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    Product,
+  Orders
 }
 
 impl RelationTrait for Relation {
     fn def(&self) -> RelationDef {
         match self {
-            Self::Product => Entity::belongs_to(super::product::Entity)
-                .from(Column::ProductId)
-                .to(super::product::Column::Id)
-                .into(),
+            Self::Orders => Entity::has_many(super::order::Entity).into(),
         }
     }
 }
 
-impl Related<super::product::Entity> for Entity {
+impl Related<super::order::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::Product.def()
+        Relation::Orders.def()
     }
 }
 

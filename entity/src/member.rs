@@ -36,23 +36,39 @@ pub struct Model {
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(has_many = "super::member_address::Entity")]
     Addresses,
+    Sales,
+    Orders,
 }
 
-// impl RelationTrait for Relation {
-//     fn def(&self) -> RelationDef {
-//         match self {
-//             Self::Addresses => Entity::has_many(super::member_address::Entity).into(),
-//         }
-//     }
-// }
+impl RelationTrait for Relation {
+    fn def(&self) -> RelationDef {
+        match self {
+            Self::Addresses => Entity::has_many(super::member_address::Entity).into(),
+            Self::Sales => Entity::has_many(super::sale::Entity).into(),
+            Self::Orders => Entity::has_many(super::order::Entity).into(),
+        }
+    }
+}
 
 impl Related<super::member_address::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Addresses.def()
     }
 }
+
+impl Related<super::sale::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Sales.def()
+    }
+}
+
+impl Related<super::order::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Orders.def()
+    }
+}
+
 
 impl ActiveModelBehavior for ActiveModel {
     fn new() -> Self {

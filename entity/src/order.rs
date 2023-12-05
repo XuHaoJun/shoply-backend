@@ -3,44 +3,42 @@
 use sea_orm::entity::{prelude::*, Set};
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "product_variant")]
+#[sea_orm(table_name = "order")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
-    pub product_id: Uuid,
-
-    pub name: String,
-    pub images: Vec<String>,
-
-    pub price: Decimal,
-
-    pub stock_input: i32,
-    pub stock_output: i32,
+    pub sale_id: Uuid,
+    pub member_id: Uuid,
 
     pub created_at: DateTimeUtc,
     pub updated_at: DateTimeUtc,
-    pub deleted_at: Option<DateTimeUtc>,
+    pub canceled_at: Option<DateTimeUtc>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    Product,
+    Sale,
+    Member,
 }
 
 impl RelationTrait for Relation {
     fn def(&self) -> RelationDef {
         match self {
-            Self::Product => Entity::belongs_to(super::product::Entity)
-                .from(Column::ProductId)
-                .to(super::product::Column::Id)
+            Self::Sale => Entity::belongs_to(super::sale::Entity)
+                .from(Column::SaleId)
+                .to(super::sale::Column::Id)
+                .into(),
+            Self::Member => Entity::belongs_to(super::member::Entity)
+                .from(Column::MemberId)
+                .to(super::member::Column::Id)
                 .into(),
         }
     }
 }
 
-impl Related<super::product::Entity> for Entity {
+impl Related<super::member::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::Product.def()
+        Relation::Member.def()
     }
 }
 
