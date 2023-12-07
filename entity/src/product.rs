@@ -15,7 +15,7 @@ pub struct Model {
     pub deleted_at: Option<DateTimeUtc>,
 }
 
-#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+#[derive(Copy, Clone, Debug, EnumIter)]
 pub enum Relation {
     ProductVariants,
 }

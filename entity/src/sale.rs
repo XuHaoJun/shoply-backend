@@ -13,14 +13,19 @@ pub struct Model {
     pub updated_at: DateTimeUtc,
 }
 
-#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+#[derive(Copy, Clone, Debug, EnumIter)]
 pub enum Relation {
-  Orders
+    Member,
+    Orders,
 }
 
 impl RelationTrait for Relation {
     fn def(&self) -> RelationDef {
         match self {
+            Self::Member => Entity::belongs_to(super::member::Entity)
+                .from(Column::MemberId)
+                .to(super::member::Column::Id)
+                .into(),
             Self::Orders => Entity::has_many(super::order::Entity).into(),
         }
     }
@@ -31,6 +36,13 @@ impl Related<super::order::Entity> for Entity {
         Relation::Orders.def()
     }
 }
+
+impl Related<super::member::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Member.def()
+    }
+}
+
 
 impl ActiveModelBehavior for ActiveModel {
     fn new() -> Self {

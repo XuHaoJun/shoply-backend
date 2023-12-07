@@ -15,7 +15,7 @@ pub struct Model {
     pub canceled_at: Option<DateTimeUtc>,
 }
 
-#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+#[derive(Copy, Clone, Debug, EnumIter)]
 pub enum Relation {
     Sale,
     Member,
@@ -39,6 +39,12 @@ impl RelationTrait for Relation {
 impl Related<super::member::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Member.def()
+    }
+}
+
+impl Related<super::sale::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Sale.def()
     }
 }
 
