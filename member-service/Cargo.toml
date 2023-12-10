@@ -21,7 +21,7 @@ ts-rs = { version = "7.0", features = [
 ] }
 
 [dependencies.sea-orm]
-version = "0.12.7"
+version = "0.12.9"
 features = [
   "debug-print",
   "runtime-tokio-native-tls",

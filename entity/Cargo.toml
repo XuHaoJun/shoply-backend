@@ -17,6 +17,6 @@ ts-rs = "7.0"
 rust_decimal = "1"
 
 [dependencies.sea-orm]
-version = "0.12.6" # sea-orm version
+version = "0.12.9" # sea-orm version
 default-features = false
 features = ["macros", "with-chrono", "with-json", "with-uuid", "with-rust_decimal"]
