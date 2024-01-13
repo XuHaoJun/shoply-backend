@@ -1,7 +1,7 @@
 [package]
 name = "shoply-backend"
 version = "0.1.0"
-authors = ["Yoshiera Huang <huangjasper@126.com>"]
+authors = ["Noah Hsu <xuhaojuntw@gmail.com>"]
 edition = "2021"
 publish = false
 
