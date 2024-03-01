@@ -2,7 +2,7 @@
 # Base
 # for all external lib or tool prepare
 ###
-FROM rust:1.75.0-alpine3.19 AS base
+FROM rust:1.76.0-alpine3.19 AS base
 RUN apk add --no-cache musl-dev libressl-dev protoc
 WORKDIR /app
 
